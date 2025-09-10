@@ -1,22 +1,36 @@
 {
   "expo": {
-    "name": "capstone-project",
-    "slug": "capstone-project",
+    "name": "Attendance App",
+    "slug": "attendance-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "capstoneproject",
+    "scheme": "attendanceapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access for automatic attendance tracking when you enter or leave office premises.",
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to track your attendance at office locations.",
+        "NSLocationAlwaysUsageDescription": "This app needs background location access to automatically track your attendance even when the app is not active.",
+        "UIBackgroundModes": ["location", "background-processing", "background-fetch"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "WAKE_LOCK",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -25,6 +39,25 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Attendance App to use your location for automatic attendance tracking.",
+          "locationAlwaysPermission": "Allow Attendance App to use your location even when the app is not active for automatic attendance tracking.",
+          "locationWhenInUsePermission": "Allow Attendance App to use your location for attendance tracking when you're using the app.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "defaultChannel": "attendance-notifications"
+        }
+      ],
       [
         "expo-splash-screen",
         {
