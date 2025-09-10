@@ -1,49 +1,50 @@
-# Capstone-Project: Real-Time Geospatial Tracking App
+# Welcome to your Expo app 👋
 
-## Capstone Project
+This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
----
+## Get started
 
-### Overview for Reviewers
+1. Install dependencies
 
-This is a capstone project focused on developing a cross-platform mobile application for real-time geospatial tracking and location sharing. The project is in its initial phase, with key objectives being to demonstrate proficiency in full-stack development (React Native, Node.js, PostgreSQL/PostGIS, Supabase) and to deliver a robust, user-centric mapping application. Features will include interactive maps, secure authentication, and modern UI/UX.
+   ```bash
+   npm install
+   ```
 
----
+2. Start the app
 
-### Guide for Developers
+   ```bash
+   npx expo start
+   ```
 
-#### Multi-Branch Workflow
+In the output, you'll find options to open the app in a
 
-- `main`: Stable, deployable version.
-- `frontend`: React Native (Expo) mobile app development.
-- `backend`: Node.js/Express API.
-- `infra`: Infrastructure scripts, DB migrations, and deployment configs.
-- Feature branches: Use `feature/<short-description>`, `bugfix/<short-description>`, or `chore/<task>`, branching from the relevant stack branch.
+- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-#### Setup
+You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-1. **Clone the repo**
-    ```
-    git clone https://github.com/yourusername/capstone-project.git
-    ```
+## Get a fresh project
 
-2. **Switch to the appropriate branch**
-    ```
-    git checkout frontend    # for mobile app code
-    git checkout backend     # for API code
-    ```
+When you're ready, run:
 
-3. **Install dependencies and run locally** (see per-branch README files for commands)
+```bash
+npm run reset-project
+```
 
-#### Contribution Guidelines
+This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-- Open issues for bugs or proposed features.
-- Use pull requests for all merges into `main`, with peer code review.
+## Learn more
 
-#### License
+To learn more about developing your project with Expo, look at the following resources:
 
-MIT License.
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
+- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
----
+## Join the community
 
-*For questions or collaboration, please open an issue or PR.*
+Join our community of developers creating universal apps.
+
+- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
+- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
