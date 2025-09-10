@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { NOTIFICATION_CHANNELS, EVENT_TYPES } from '../utils/constants';
+import { EVENT_TYPES, NOTIFICATION_CHANNELS } from "../utils/constants";
 
 // Configure notifications
 Notifications.setNotificationHandler({

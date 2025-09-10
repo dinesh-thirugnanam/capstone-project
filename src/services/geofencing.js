@@ -1,14 +1,35 @@
-import BackgroundGeolocation from 'react-native-background-geolocation';
-import ApiService from './api';
-import NotificationService from './notifications';
-import { GEOFENCE_CONFIG, EVENT_TYPES } from '../utils/constants';
-import { tokenManager } from '../utils/helpers';
+import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
+import { EVENT_TYPES, GEOFENCE_CONFIG } from "../utils/constants";
+import { tokenManager } from "../utils/helpers";
+import ApiService from "./api";
+import NotificationService from "./notifications";
+
+const LOCATION_TASK_NAME = 'background-location-task';
+
+// Register the background task
+TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
+  if (error) {
+    console.error('Background location task error:', error);
+    return;
+  }
+  if (data) {
+    const { locations } = data;
+    console.log('Received new locations', locations);
+    // Handle location updates here
+    GeofencingService.instance?.handleLocationUpdate(locations[0]);
+  }
+});
 
 class GeofencingService {
   constructor() {
     this.isInitialized = false;
     this.isTracking = false;
     this.currentGeofences = [];
+    this.locationWatcher = null;
+    
+    // Set static instance for background task access
+    GeofencingService.instance = this;
   }
 
   async initialize() {
@@ -22,11 +43,24 @@ class GeofencingService {
         throw new Error('No authentication token found');
       }
 
-      // Configure BackgroundGeolocation
-      await BackgroundGeolocation.ready({
-        // Geolocation Config
-        desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
-        distanceFilter: 10,
+      // Request permissions
+      const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+      if (foregroundStatus !== 'granted') {
+        throw new Error('Foreground location permission not granted');
+      }
+
+      const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (backgroundStatus !== 'granted') {
+        console.warn('Background location permission not granted');
+      }
+
+      this.isInitialized = true;
+      console.log('GeofencingService initialized successfully');
+    } catch (error) {
+      console.error('GeofencingService initialization failed:', error);
+      throw error;
+    }
+  }
         
         // Activity Recognition Config
         stopTimeout: 1,

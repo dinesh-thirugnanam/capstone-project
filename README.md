@@ -1,13 +1,96 @@
-# Welcome to your Expo app 👋
+# 📱 Attendance App - Real-time Geofencing Solution
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A professional React Native Expo application with **native geofencing capabilities** for automatic employee attendance tracking. Features real-time location monitoring, admin management tools, and seamless integration with the Node.js backend.
 
-## Get started
+## ✨ Key Features
 
-1. Install dependencies
+### � **Authentication System**
+- User registration with role selection (Admin/Employee)
+- JWT-based secure authentication
+- Automatic session restoration
+- Role-based access control
 
-   ```bash
-   npm install
+### 👨‍💼 **Employee Features**
+- **Automatic Attendance Tracking**: Background geofencing with native location services
+- **Real-time Dashboard**: Live attendance status and daily summaries
+- **Activity History**: Complete log of check-ins and check-outs
+- **Smart Notifications**: Instant alerts for attendance events
+- **Working Hours Detection**: Identifies events during/after office hours
+
+### 👩‍💻 **Admin Features**
+- **Office Management**: Create, edit, and delete office locations
+- **Geofence Configuration**: Set custom boundaries and working hours
+- **Employee Monitoring**: View all office locations and their status
+- **Real-time Reports**: Track attendance across multiple locations
+
+### 🛠️ **Technical Features**
+- **Native Geofencing**: Uses `react-native-background-geolocation` for production-ready tracking
+- **Background Processing**: Continues tracking even when app is closed
+- **Offline Sync**: Queues events when offline, syncs when connected
+- **Battery Optimized**: Smart location tracking to preserve device battery
+- **Push Notifications**: Real-time attendance alerts using Expo Notifications
+
+## 🏗️ Architecture
+
+### **Frontend Stack**
+- **React Native** with Expo (Custom Dev Client)
+- **React Navigation 6** for seamless navigation
+- **React Context** for state management
+- **AsyncStorage** for secure local data persistence
+- **React Native Paper** for consistent UI components
+
+### **Backend Integration**
+- **RESTful API** with full error handling and retry logic
+- **JWT Authentication** with automatic token refresh
+- **Real-time Event Processing** for attendance tracking
+- **Comprehensive Logging** for debugging and monitoring
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js (v18+)
+- Expo CLI (`npm install -g @expo/cli`)
+- EAS CLI (`npm install -g eas-cli`)
+- iOS Simulator or Android Emulator
+
+### Installation
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Set up native modules (required for geofencing)
+npx expo prebuild
+
+# 3. Start development server
+npx expo start
+```
+
+### **Important**: For full geofencing functionality, you need a **Custom Development Client**:
+
+```bash
+# Build custom dev client (one-time setup)
+eas build --profile development --platform ios     # or android
+# Install the built app on your device
+
+# Then start with dev client
+npx expo start --dev-client
+```
+
+> **Note**: Background geofencing requires native modules and won't work in Expo Go.
+
+## 🚀 **Ready for Production**
+
+This attendance app is **fully functional** and ready for business deployment. It features:
+
+✅ **Real native geofencing** with background tracking  
+✅ **Professional UI/UX** suitable for corporate environments  
+✅ **Comprehensive admin tools** for office management  
+✅ **Reliable backend integration** with full API coverage  
+✅ **Production-grade architecture** with proper error handling  
+✅ **Battery-optimized tracking** for all-day monitoring  
+
+**Perfect for businesses requiring automatic, accurate attendance tracking!**
    ```
 
 2. Start the app

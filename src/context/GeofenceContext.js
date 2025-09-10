@@ -1,283 +1,289 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { AppState } from 'react-native';
-import { useAuth } from './AuthContext';
-import GeofencingService from '../services/geofencing';
-import NotificationService from '../services/notifications';
-import ApiService from '../services/api';
-import { USER_ROLES } from '../utils/constants';
+import { createContext, useContext, useEffect, useState } from "react";
+import { AppState } from "react-native";
+import ApiService from "../services/api";
+import GeofencingService from "../services/geofencing-expo";
+import NotificationService from "../services/notifications";
+import { useAuth } from "./AuthContext";
 
 const GeofenceContext = createContext({});
 
 export const useGeofence = () => {
-  const context = useContext(GeofenceContext);
-  if (!context) {
-    throw new Error('useGeofence must be used within a GeofenceProvider');
-  }
-  return context;
+    const context = useContext(GeofenceContext);
+    if (!context) {
+        throw new Error("useGeofence must be used within a GeofenceProvider");
+    }
+    return context;
 };
 
 export const GeofenceProvider = ({ children }) => {
-  const { user, isAuthenticated, isEmployee } = useAuth();
-  
-  // State
-  const [isTracking, setIsTracking] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [offices, setOffices] = useState([]);
-  const [currentStatus, setCurrentStatus] = useState(null);
-  const [permissions, setPermissions] = useState({
-    location: false,
-    notifications: false,
-  });
-  const [error, setError] = useState(null);
+    const { user, isAuthenticated, isEmployee } = useAuth();
 
-  // Initialize geofencing when user logs in as employee
-  useEffect(() => {
-    if (isAuthenticated && isEmployee()) {
-      initializeGeofencing();
-    } else if (!isAuthenticated) {
-      cleanup();
-    }
-  }, [isAuthenticated, user]);
+    // State
+    const [isTracking, setIsTracking] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(false);
+    const [offices, setOffices] = useState([]);
+    const [currentStatus, setCurrentStatus] = useState(null);
+    const [permissions, setPermissions] = useState({
+        location: false,
+        notifications: false,
+    });
+    const [error, setError] = useState(null);
 
-  // Handle app state changes
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState) => {
-      NotificationService.handleAppStateChange(nextAppState);
-      
-      if (nextAppState === 'active' && isTracking) {
-        // Refresh status when app becomes active
-        refreshCurrentStatus();
-      }
+    // Initialize geofencing when user logs in as employee
+    useEffect(() => {
+        if (isAuthenticated && isEmployee()) {
+            initializeGeofencing();
+        } else if (!isAuthenticated) {
+            cleanup();
+        }
+    }, [isAuthenticated, user]);
+
+    // Handle app state changes
+    useEffect(() => {
+        const handleAppStateChange = (nextAppState) => {
+            NotificationService.handleAppStateChange(nextAppState);
+
+            if (nextAppState === "active" && isTracking) {
+                // Refresh status when app becomes active
+                refreshCurrentStatus();
+            }
+        };
+
+        const subscription = AppState.addEventListener(
+            "change",
+            handleAppStateChange
+        );
+        return () => subscription?.remove();
+    }, [isTracking]);
+
+    const initializeGeofencing = async () => {
+        try {
+            setIsInitializing(true);
+            setError(null);
+
+            console.log("🔧 Initializing geofencing for employee...");
+
+            // Request permissions
+            const permissionsGranted = await requestPermissions();
+            if (!permissionsGranted) {
+                throw new Error("Required permissions not granted");
+            }
+
+            // Initialize services
+            await Promise.all([
+                GeofencingService.initialize(),
+                NotificationService.initialize(),
+            ]);
+
+            // Load offices and set up geofences
+            await loadOfficesAndSetupGeofences();
+
+            // Start tracking
+            await startTracking();
+
+            console.log("✅ Geofencing initialized successfully");
+        } catch (error) {
+            console.error("❌ Failed to initialize geofencing:", error);
+            setError(error.message);
+        } finally {
+            setIsInitializing(false);
+        }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
-  }, [isTracking]);
+    const requestPermissions = async () => {
+        try {
+            // Request geofencing permissions
+            const locationPermission =
+                await GeofencingService.requestPermissions();
 
-  const initializeGeofencing = async () => {
-    try {
-      setIsInitializing(true);
-      setError(null);
+            // Request notification permissions
+            const notificationPermission =
+                await NotificationService.initialize();
 
-      console.log('🔧 Initializing geofencing for employee...');
+            setPermissions({
+                location: locationPermission,
+                notifications: notificationPermission,
+            });
 
-      // Request permissions
-      const permissionsGranted = await requestPermissions();
-      if (!permissionsGranted) {
-        throw new Error('Required permissions not granted');
-      }
+            if (!locationPermission) {
+                await NotificationService.showSystemNotification(
+                    "Location Permission Required",
+                    "Please enable location permissions for automatic attendance tracking"
+                );
+            }
 
-      // Initialize services
-      await Promise.all([
-        GeofencingService.initialize(),
-        NotificationService.initialize()
-      ]);
+            if (!notificationPermission) {
+                await NotificationService.showSystemNotification(
+                    "Notification Permission",
+                    "Enable notifications to receive attendance alerts"
+                );
+            }
 
-      // Load offices and set up geofences
-      await loadOfficesAndSetupGeofences();
-
-      // Start tracking
-      await startTracking();
-
-      console.log('✅ Geofencing initialized successfully');
-    } catch (error) {
-      console.error('❌ Failed to initialize geofencing:', error);
-      setError(error.message);
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
-  const requestPermissions = async () => {
-    try {
-      // Request geofencing permissions
-      const locationPermission = await GeofencingService.requestPermissions();
-      
-      // Request notification permissions
-      const notificationPermission = await NotificationService.initialize();
-
-      setPermissions({
-        location: locationPermission,
-        notifications: notificationPermission,
-      });
-
-      if (!locationPermission) {
-        await NotificationService.showSystemNotification(
-          'Location Permission Required',
-          'Please enable location permissions for automatic attendance tracking'
-        );
-      }
-
-      if (!notificationPermission) {
-        await NotificationService.showSystemNotification(
-          'Notification Permission',
-          'Enable notifications to receive attendance alerts'
-        );
-      }
-
-      return locationPermission; // Location is mandatory, notifications are optional
-    } catch (error) {
-      console.error('❌ Permission request error:', error);
-      return false;
-    }
-  };
-
-  const loadOfficesAndSetupGeofences = async () => {
-    try {
-      const response = await ApiService.getGeofences();
-      
-      if (response.success && response.data) {
-        const officesData = response.data.geofences || response.data;
-        setOffices(officesData);
-
-        if (officesData.length > 0) {
-          await GeofencingService.addGeofences(officesData);
-          console.log(`📍 Set up geofences for ${officesData.length} offices`);
-        } else {
-          console.warn('⚠️ No offices found to set up geofences');
+            return locationPermission; // Location is mandatory, notifications are optional
+        } catch (error) {
+            console.error("❌ Permission request error:", error);
+            return false;
         }
-      }
-    } catch (error) {
-      console.error('❌ Failed to load offices:', error);
-      throw error;
-    }
-  };
+    };
 
-  const startTracking = async () => {
-    try {
-      await GeofencingService.startTracking();
-      setIsTracking(true);
-      
-      // Refresh current status
-      await refreshCurrentStatus();
-      
-      console.log('🚀 Geofence tracking started');
-    } catch (error) {
-      console.error('❌ Failed to start tracking:', error);
-      throw error;
-    }
-  };
+    const loadOfficesAndSetupGeofences = async () => {
+        try {
+            const response = await ApiService.getGeofences();
 
-  const stopTracking = async () => {
-    try {
-      await GeofencingService.stopTracking();
-      setIsTracking(false);
-      console.log('⏹️ Geofence tracking stopped');
-    } catch (error) {
-      console.error('❌ Failed to stop tracking:', error);
-      setError(error.message);
-    }
-  };
+            if (response.success && response.data) {
+                const officesData = response.data.geofences || response.data;
+                setOffices(officesData);
 
-  const refreshCurrentStatus = async () => {
-    try {
-      const response = await ApiService.getCurrentStatus();
-      if (response.success) {
-        setCurrentStatus(response.data);
-      }
-    } catch (error) {
-      console.error('❌ Failed to refresh current status:', error);
-    }
-  };
+                if (officesData.length > 0) {
+                    await GeofencingService.addGeofences(officesData);
+                    console.log(
+                        `📍 Set up geofences for ${officesData.length} offices`
+                    );
+                } else {
+                    console.warn("⚠️ No offices found to set up geofences");
+                }
+            }
+        } catch (error) {
+            console.error("❌ Failed to load offices:", error);
+            throw error;
+        }
+    };
 
-  const refreshOffices = async () => {
-    try {
-      await loadOfficesAndSetupGeofences();
-    } catch (error) {
-      console.error('❌ Failed to refresh offices:', error);
-      setError(error.message);
-    }
-  };
+    const startTracking = async () => {
+        try {
+            await GeofencingService.startTracking();
+            setIsTracking(true);
 
-  const cleanup = async () => {
-    try {
-      await GeofencingService.reset();
-      setIsTracking(false);
-      setOffices([]);
-      setCurrentStatus(null);
-      setError(null);
-      console.log('🧹 Geofencing cleaned up');
-    } catch (error) {
-      console.error('❌ Cleanup error:', error);
-    }
-  };
+            // Refresh current status
+            await refreshCurrentStatus();
 
-  const getTrackingState = async () => {
-    try {
-      return await GeofencingService.getGeofenceState();
-    } catch (error) {
-      console.error('❌ Failed to get tracking state:', error);
-      return null;
-    }
-  };
+            console.log("🚀 Geofence tracking started");
+        } catch (error) {
+            console.error("❌ Failed to start tracking:", error);
+            throw error;
+        }
+    };
 
-  const forceLocationUpdate = async () => {
-    try {
-      return await GeofencingService.getCurrentLocation();
-    } catch (error) {
-      console.error('❌ Failed to get current location:', error);
-      setError(error.message);
-      return null;
-    }
-  };
+    const stopTracking = async () => {
+        try {
+            await GeofencingService.stopTracking();
+            setIsTracking(false);
+            console.log("⏹️ Geofence tracking stopped");
+        } catch (error) {
+            console.error("❌ Failed to stop tracking:", error);
+            setError(error.message);
+        }
+    };
 
-  const clearError = () => {
-    setError(null);
-  };
+    const refreshCurrentStatus = async () => {
+        try {
+            const response = await ApiService.getCurrentStatus();
+            if (response.success) {
+                setCurrentStatus(response.data);
+            }
+        } catch (error) {
+            console.error("❌ Failed to refresh current status:", error);
+        }
+    };
 
-  // Helper methods
-  const isCurrentlyInOffice = () => {
-    return currentStatus?.isCurrentlyInside || false;
-  };
+    const refreshOffices = async () => {
+        try {
+            await loadOfficesAndSetupGeofences();
+        } catch (error) {
+            console.error("❌ Failed to refresh offices:", error);
+            setError(error.message);
+        }
+    };
 
-  const getCurrentOffices = () => {
-    return currentStatus?.currentLocations || [];
-  };
+    const cleanup = async () => {
+        try {
+            await GeofencingService.reset();
+            setIsTracking(false);
+            setOffices([]);
+            setCurrentStatus(null);
+            setError(null);
+            console.log("🧹 Geofencing cleaned up");
+        } catch (error) {
+            console.error("❌ Cleanup error:", error);
+        }
+    };
 
-  const getOfficeCount = () => {
-    return offices.length;
-  };
+    const getTrackingState = async () => {
+        try {
+            return await GeofencingService.getGeofenceState();
+        } catch (error) {
+            console.error("❌ Failed to get tracking state:", error);
+            return null;
+        }
+    };
 
-  const hasLocationPermission = () => {
-    return permissions.location;
-  };
+    const forceLocationUpdate = async () => {
+        try {
+            return await GeofencingService.getCurrentLocation();
+        } catch (error) {
+            console.error("❌ Failed to get current location:", error);
+            setError(error.message);
+            return null;
+        }
+    };
 
-  const hasNotificationPermission = () => {
-    return permissions.notifications;
-  };
+    const clearError = () => {
+        setError(null);
+    };
 
-  const contextValue = {
-    // State
-    isTracking,
-    isInitializing,
-    offices,
-    currentStatus,
-    permissions,
-    error,
-    
-    // Actions
-    startTracking,
-    stopTracking,
-    refreshCurrentStatus,
-    refreshOffices,
-    requestPermissions,
-    forceLocationUpdate,
-    clearError,
-    
     // Helper methods
-    isCurrentlyInOffice,
-    getCurrentOffices,
-    getOfficeCount,
-    hasLocationPermission,
-    hasNotificationPermission,
-    getTrackingState,
-  };
+    const isCurrentlyInOffice = () => {
+        return currentStatus?.isCurrentlyInside || false;
+    };
 
-  return (
-    <GeofenceContext.Provider value={contextValue}>
-      {children}
-    </GeofenceContext.Provider>
-  );
+    const getCurrentOffices = () => {
+        return currentStatus?.currentLocations || [];
+    };
+
+    const getOfficeCount = () => {
+        return offices.length;
+    };
+
+    const hasLocationPermission = () => {
+        return permissions.location;
+    };
+
+    const hasNotificationPermission = () => {
+        return permissions.notifications;
+    };
+
+    const contextValue = {
+        // State
+        isTracking,
+        isInitializing,
+        offices,
+        currentStatus,
+        permissions,
+        error,
+
+        // Actions
+        startTracking,
+        stopTracking,
+        refreshCurrentStatus,
+        refreshOffices,
+        requestPermissions,
+        forceLocationUpdate,
+        clearError,
+
+        // Helper methods
+        isCurrentlyInOffice,
+        getCurrentOffices,
+        getOfficeCount,
+        hasLocationPermission,
+        hasNotificationPermission,
+        getTrackingState,
+    };
+
+    return (
+        <GeofenceContext.Provider value={contextValue}>
+            {children}
+        </GeofenceContext.Provider>
+    );
 };
 
 export { GeofenceContext };
