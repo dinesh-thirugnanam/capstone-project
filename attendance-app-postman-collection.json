@@ -1,0 +1,556 @@
+{
+  "info": {
+    "name": "Attendance App Backend API",
+    "description": "Complete API collection for testing the attendance app backend with geofencing capabilities",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "geofenceId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employee@company.com\",\n  \"password\": \"password123\",\n  \"role\": \"employee\",\n  \"profile\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"employeeId\": \"EMP001\",\n    \"department\": \"Engineering\",\n    \"phoneNumber\": \"+1234567890\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('token', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\",\n  \"profile\": {\n    \"firstName\": \"Admin\",\n    \"lastName\": \"User\",\n    \"employeeId\": \"ADM001\",\n    \"department\": \"HR\",\n    \"phoneNumber\": \"+1234567891\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('token', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employee@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('token', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Geofences (Office Locations)",
+      "item": [
+        {
+          "name": "Create Office Geofence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Office\",\n  \"description\": \"Company headquarters office location\",\n  \"centerLatitude\": 40.7128,\n  \"centerLongitude\": -74.0060,\n  \"radius\": 100,\n  \"isActive\": true,\n  \"officeInfo\": {\n    \"address\": \"123 Business Ave, New York, NY 10001\",\n    \"workingHours\": {\n      \"start\": \"09:00\",\n      \"end\": \"17:00\"\n    },\n    \"workingDays\": [\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('geofenceId', response.data.geofence.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Branch Office Geofence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Branch Office - Brooklyn\",\n  \"description\": \"Brooklyn branch office location\",\n  \"centerLatitude\": 40.6782,\n  \"centerLongitude\": -73.9442,\n  \"radius\": 150,\n  \"isActive\": true,\n  \"officeInfo\": {\n    \"address\": \"456 Brooklyn St, Brooklyn, NY 11201\",\n    \"workingHours\": {\n      \"start\": \"08:30\",\n      \"end\": \"17:30\"\n    },\n    \"workingDays\": [\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences"]
+            }
+          }
+        },
+        {
+          "name": "Get All Geofences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Specific Geofence",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences/{{geofenceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences", "{{geofenceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Geofence",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Office - Updated\",\n  \"description\": \"Updated company headquarters office location\",\n  \"centerLatitude\": 40.7128,\n  \"centerLongitude\": -74.0060,\n  \"radius\": 120,\n  \"isActive\": true,\n  \"officeInfo\": {\n    \"address\": \"123 Business Ave, New York, NY 10001\",\n    \"workingHours\": {\n      \"start\": \"08:30\",\n      \"end\": \"18:00\"\n    },\n    \"workingDays\": [\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences/{{geofenceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences", "{{geofenceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Geofence",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences/{{geofenceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences", "{{geofenceId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance Tracking",
+      "item": [
+        {
+          "name": "Employee Enters Office",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"geofenceId\": \"{{geofenceId}}\",\n  \"eventType\": \"ENTER\",\n  \"location\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  },\n  \"metadata\": {\n    \"deviceInfo\": \"iPhone 14 Pro\",\n    \"accuracy\": 5,\n    \"source\": \"mobile_app\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/event",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "event"]
+            }
+          }
+        },
+        {
+          "name": "Employee Exits Office",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"geofenceId\": \"{{geofenceId}}\",\n  \"eventType\": \"EXIT\",\n  \"location\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  },\n  \"metadata\": {\n    \"deviceInfo\": \"iPhone 14 Pro\",\n    \"accuracy\": 5,\n    \"source\": \"mobile_app\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/event",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "event"]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/history?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "disabled": true
+                },
+                {
+                  "key": "geofenceId",
+                  "value": "{{geofenceId}}",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Daily Attendance Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/summary/2024-01-15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "summary", "2024-01-15"]
+            }
+          }
+        },
+        {
+          "name": "Get Current Attendance Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Legacy Location Endpoints",
+      "item": [
+        {
+          "name": "Save Location Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 40.7128,\n  \"longitude\": -74.0060,\n  \"metadata\": {\n    \"address\": \"New York, NY\",\n    \"accuracy\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/locations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "locations"]
+            }
+          }
+        },
+        {
+          "name": "Get Location History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/locations?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "locations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Find Nearby Locations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/locations/nearby?lat=40.7128&lng=-74.0060&radius=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "locations", "nearby"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "40.7128"
+                },
+                {
+                  "key": "lng",
+                  "value": "-74.0060"
+                },
+                {
+                  "key": "radius",
+                  "value": "1000"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        },
+        {
+          "name": "Root Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
