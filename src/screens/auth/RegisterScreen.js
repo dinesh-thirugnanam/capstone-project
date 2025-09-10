@@ -1,4 +1,5 @@
 import { Picker } from "@react-native-picker/picker";
+import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
     Alert,
@@ -11,7 +12,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS, USER_ROLES } from "../../utils/constants";

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { AppState, LogBox, StatusBar, AppStateStatus } from "react-native";
-import { PaperProvider } from "react-native-paper";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { AppState, AppStateStatus, LogBox, StatusBar } from "react-native";
+import { PaperProvider } from "react-native-paper";
 
 // Context Providers
 import AuthProvider from "../src/context/AuthContext";

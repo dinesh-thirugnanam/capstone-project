@@ -1,5 +1,5 @@
-import GeofenceProvider from "../../src/context/GeofenceContext";
 import { Stack } from "expo-router";
+import GeofenceProvider from "../../src/context/GeofenceContext";
 
 export default function EmployeeLayout() {
     return (
