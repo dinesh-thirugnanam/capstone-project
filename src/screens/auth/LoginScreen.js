@@ -47,11 +47,28 @@ const LoginScreen = () => {
             return;
         }
 
+        console.log("🔐 LoginScreen: Starting login process");
         const result = await login(formData.email, formData.password);
+        console.log("📝 LoginScreen: Login result:", result);
 
         if (!result.success) {
             Alert.alert("Login Failed", result.error);
+        } else {
+            console.log("✅ LoginScreen: Login successful, user:", result.user);
+            
+            // Add explicit navigation as fallback
+            setTimeout(() => {
+                console.log("⏰ LoginScreen: Timeout triggered, checking navigation need");
+                if (result.user) {
+                    const targetRoute = result.user.role === 'admin' 
+                        ? '/(admin)/dashboard' 
+                        : '/(employee)/dashboard';
+                    console.log("🎯 LoginScreen: Explicit navigation to:", targetRoute);
+                    router.replace(targetRoute);
+                }
+            }, 500); // Give AuthContext time to update
         }
+        // Note: The auth context will also handle navigation, this is just a fallback
     };
 
     const handleInputChange = (field, value) => {

@@ -71,6 +71,7 @@ const RegisterScreen = () => {
         if (!result.success) {
             Alert.alert("Registration Failed", result.error);
         }
+        // No manual navigation needed - the auth context will handle it
     };
 
     const handleInputChange = (field, value) => {

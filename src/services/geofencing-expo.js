@@ -314,6 +314,42 @@ class GeofencingService {
       geofenceCount: this.currentGeofences.length
     };
   }
+
+  // Alias for getStatus to match expected interface
+  getGeofenceState() {
+    return this.getStatus();
+  }
+
+  async requestPermissions() {
+    try {
+      const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+      if (foregroundStatus !== 'granted') {
+        throw new Error('Foreground location permission not granted');
+      }
+
+      const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (backgroundStatus !== 'granted') {
+        throw new Error('Background location permission not granted');
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Failed to request permissions:', error);
+      throw error;
+    }
+  }
+
+  async reset() {
+    try {
+      await this.stopTracking();
+      this.currentGeofences = [];
+      this.isInitialized = false;
+      console.log('✅ Geofencing service reset');
+    } catch (error) {
+      console.error('❌ Failed to reset geofencing service:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
