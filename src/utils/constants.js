@@ -1,11 +1,63 @@
 // Configuration constants
-export const API_CONFIG = {
-  BASE_URL: __DEV__ 
-    ? 'http://10.120.159.85:3000/api' 
-    : 'https://your-production-api.com/api',
-  TIMEOUT: 10000,
-  RETRY_ATTEMPTS: 3,
+import Constants from "expo-constants";
+
+const getDevBaseUrl = () => {
+    // Get the device's network interface
+    const { debuggerHost } = Constants.expoConfig?.hostUri?.split(":")[0] || {};
+
+    // Define URLs for different locations/networks
+    const DEV_URLS = {
+        // Home network
+        "192.168.1.100": "http://192.168.1.100:3000/api", // Your home PC
+        "192.168.1.101": "http://192.168.1.101:3000/api", // Your laptop
+
+        // Office/university network
+        "10.120.159.85": "http://10.120.159.85:3000/api", // Current setup
+        "10.120.159.86": "http://10.120.159.86:3000/api", // Lab PC
+
+        // Default fallback
+        localhost: "http://127.0.0.1:3000/api",
+    };
+
+    // Get current host IP
+    const currentHost =
+        debuggerHost || Constants.expoConfig?.hostUri?.split(":")[0];
+
+    console.log("🔍 API URL Detection:");
+    console.log("  - debuggerHost:", debuggerHost);
+    console.log("  - currentHost:", currentHost);
+    console.log("  - Available URLs:", DEV_URLS);
+
+    // Multiple fallback options for different scenarios
+    let selectedUrl;
+
+    if (currentHost && DEV_URLS[currentHost]) {
+        // Use mapped URL from DEV_URLS
+        selectedUrl = DEV_URLS[currentHost];
+        console.log("  - Using mapped URL for host:", currentHost);
+    } else if (currentHost && currentHost !== "localhost") {
+        // Use detected IP address directly
+        selectedUrl = `http://${currentHost}:3000/api`;
+        console.log("  - Using detected host IP:", currentHost);
+    } else {
+        // Use localhost with ADB reverse proxy (run: adb reverse tcp:3000 tcp:3000)
+        selectedUrl = "http://localhost:3000/api";
+        console.log("  - Using localhost with ADB reverse proxy");
+    }
+
+    // console.log("  - Final Selected URL:", selectedUrl);
+    console.log("  - Final Selected URL:", "http://192.168.0.101:3000/api");
+
+    // return selectedUrl;
+    return "http://192.168.0.101:3000/api";
 };
+
+export const API_CONFIG = {
+    BASE_URL: __DEV__ ? getDevBaseUrl() : "https://your-production-api.com/api",
+    TIMEOUT: 10000,
+    RETRY_ATTEMPTS: 3,
+};
+
 
 // Storage keys
 export const STORAGE_KEYS = {

@@ -5,6 +5,7 @@ class ApiService {
   constructor() {
     this.baseURL = API_CONFIG.BASE_URL;
     this.timeout = API_CONFIG.TIMEOUT;
+    console.log('🌐 API Service initialized with baseURL:', this.baseURL);
   }
 
   async getAuthHeaders() {
@@ -18,6 +19,9 @@ class ApiService {
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     const headers = await this.getAuthHeaders();
+    
+    console.log(`🔗 Making API request to: ${url}`);
+    console.log('📋 Request options:', { method: options.method || 'GET', headers });
     
     const config = {
       headers,

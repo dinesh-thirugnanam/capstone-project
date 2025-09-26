@@ -1,43 +1,64 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, Card } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../src/context/AuthContext';
-import { COLORS } from '../../src/utils/constants';
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    View,
+} from "react-native";
+import { Button, Card, Text, TextInput } from "react-native-paper";
+import { useAuth } from "../../src/context/AuthContext";
+import { COLORS } from "../../src/utils/constants";
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const { login } = useAuth() as any;
     const router = useRouter();
 
+    // Debug logging
+    console.log("🔑 LoginScreen rendered at", new Date().toLocaleTimeString());
+
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert("Error", "Please fill in all fields");
             return;
         }
 
         setLoading(true);
         try {
+            console.log("🔐 Login button pressed, calling auth.login()");
             const result = await login(email, password);
+            console.log("📡 Login result received:", result);
+
             if (result.success) {
-                // Navigation will be handled by App.js based on user role
-                console.log('Login successful, navigation will be handled automatically');
+                console.log("✅ Login successful! User:", result.user);
+                console.log(
+                    "🔄 Navigation should be handled by index.tsx based on user role"
+                );
+                // Don't navigate manually - let index.tsx handle it automatically
             } else {
-                Alert.alert('Login Failed', result.error || 'Invalid credentials');
+                console.log("❌ Login failed:", result.error);
+                Alert.alert(
+                    "Login Failed",
+                    result.error || "Invalid credentials"
+                );
             }
         } catch (error) {
-            Alert.alert('Error', 'Login failed. Please try again.');
+            console.log("💥 Login error caught:", error);
+            Alert.alert("Error", "Login failed. Please try again.");
         } finally {
             setLoading(false);
+            console.log("🏁 Login process completed");
         }
     };
 
     return (
-        <KeyboardAvoidingView 
-            style={styles.container} 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <View style={styles.content}>
                 <Text variant="headlineMedium" style={styles.title}>
@@ -57,7 +78,7 @@ export default function LoginScreen() {
                             autoCapitalize="none"
                             style={styles.input}
                         />
-                        
+
                         <TextInput
                             label="Password"
                             value={password}
@@ -65,9 +86,9 @@ export default function LoginScreen() {
                             secureTextEntry
                             style={styles.input}
                         />
-                        
-                        <Button 
-                            mode="contained" 
+
+                        <Button
+                            mode="contained"
                             onPress={handleLogin}
                             loading={loading}
                             disabled={loading}
@@ -75,10 +96,10 @@ export default function LoginScreen() {
                         >
                             Sign In
                         </Button>
-                        
-                        <Button 
-                            mode="text" 
-                            onPress={() => router.push('/(auth)/register')}
+
+                        <Button
+                            mode="text"
+                            onPress={() => router.push("/(auth)/register")}
                             style={styles.linkButton}
                         >
                             Don't have an account? Sign up
@@ -97,17 +118,17 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: "center",
         padding: 20,
     },
     title: {
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 8,
         color: COLORS.primary,
-        fontWeight: 'bold',
+        fontWeight: "bold",
     },
     subtitle: {
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 32,
         color: COLORS.text,
     },
