@@ -49,7 +49,8 @@ const getDevBaseUrl = () => {
     console.log("  - Final Selected URL:", "http://192.168.0.101:3000/api");
 
     // return selectedUrl;
-    return "http://192.168.0.101:3000/api";
+    // return "http://192.168.0.101:3000/api";
+    return "http://10.120.159.85:3000/api";
 };
 
 export const API_CONFIG = {
