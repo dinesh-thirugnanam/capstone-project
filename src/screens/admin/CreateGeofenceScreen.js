@@ -21,11 +21,22 @@ export default function CreateGeofenceScreen({ navigation }) {
     longitude: 77.5946,
     radius: 200,
     address: '',
+    startTime: '09:00',
+    endTime: '18:00',
+  });
+
+  const [workingDays, setWorkingDays] = useState({
+    Monday: true,
+    Tuesday: true,
+    Wednesday: true,
+    Thursday: true,
+    Friday: true,
+    Saturday: false,
+    Sunday: false,
   });
 
   const [loading, setLoading] = useState(false);
 
-  // Get current location on mount
   React.useEffect(() => {
     getCurrentLocation();
   }, []);
@@ -56,7 +67,6 @@ export default function CreateGeofenceScreen({ navigation }) {
         longitude: loc.coords.longitude,
       });
 
-      // Animate map to current location
       mapRef.current?.animateToRegion(newRegion, 500);
     } catch (error) {
       console.error('Error getting location:', error);
@@ -73,6 +83,23 @@ export default function CreateGeofenceScreen({ navigation }) {
     setGeofence({ ...geofence, latitude, longitude });
   };
 
+  const toggleWorkingDay = (day) => {
+    setWorkingDays({ ...workingDays, [day]: !workingDays[day] });
+  };
+
+  const set24Hours = () => {
+    setGeofence({ ...geofence, startTime: '00:00', endTime: '23:59' });
+    setWorkingDays({
+      Monday: true,
+      Tuesday: true,
+      Wednesday: true,
+      Thursday: true,
+      Friday: true,
+      Saturday: true,
+      Sunday: true,
+    });
+  };
+
   const handleCreate = async () => {
     if (!geofence.name.trim()) {
       Alert.alert('Error', 'Geofence name is required');
@@ -81,6 +108,12 @@ export default function CreateGeofenceScreen({ navigation }) {
 
     if (geofence.radius < 50 || geofence.radius > 5000) {
       Alert.alert('Error', 'Radius must be between 50 and 5000 meters');
+      return;
+    }
+
+    const selectedDays = Object.keys(workingDays).filter(day => workingDays[day]);
+    if (selectedDays.length === 0) {
+      Alert.alert('Error', 'At least one working day must be selected');
       return;
     }
 
@@ -94,8 +127,11 @@ export default function CreateGeofenceScreen({ navigation }) {
         longitude: geofence.longitude,
         radius: parseInt(geofence.radius),
         address: geofence.address,
-        workingHours: { start: '09:00', end: '18:00' },
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        workingHours: { 
+          start: geofence.startTime, 
+          end: geofence.endTime 
+        },
+        workingDays: selectedDays,
       });
 
       Alert.alert('Success', 'Geofence created successfully', [
@@ -129,7 +165,7 @@ export default function CreateGeofenceScreen({ navigation }) {
 
       <ScrollView>
         {/* Map */}
-        <View style={{ height: 350 }} className="mx-4 mt-4 rounded-xl overflow-hidden shadow-lg">
+        <View style={{ height: 300 }} className="mx-4 mt-4 rounded-xl overflow-hidden shadow-lg">
           <MapView
             ref={mapRef}
             style={StyleSheet.absoluteFillObject}
@@ -139,7 +175,6 @@ export default function CreateGeofenceScreen({ navigation }) {
             showsUserLocation
             showsMyLocationButton
           >
-            {/* Draggable Marker */}
             <Marker
               coordinate={{
                 latitude: geofence.latitude,
@@ -151,7 +186,6 @@ export default function CreateGeofenceScreen({ navigation }) {
               pinColor="blue"
             />
             
-            {/* Radius Circle */}
             <Circle
               center={{
                 latitude: geofence.latitude,
@@ -167,6 +201,7 @@ export default function CreateGeofenceScreen({ navigation }) {
 
         {/* Form */}
         <View className="p-6">
+          {/* Name */}
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
             <Text className="text-gray-700 font-semibold mb-2">Geofence Name *</Text>
             <TextInput
@@ -177,6 +212,7 @@ export default function CreateGeofenceScreen({ navigation }) {
             />
           </View>
 
+          {/* Description */}
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
             <Text className="text-gray-700 font-semibold mb-2">Description</Text>
             <TextInput
@@ -188,6 +224,7 @@ export default function CreateGeofenceScreen({ navigation }) {
             />
           </View>
 
+          {/* Radius */}
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
             <Text className="text-gray-700 font-semibold mb-2">Radius (meters) *</Text>
             <TextInput
@@ -203,6 +240,7 @@ export default function CreateGeofenceScreen({ navigation }) {
             <Text className="text-gray-500 text-xs mt-2">Between 50 and 5000 meters</Text>
           </View>
 
+          {/* Address */}
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
             <Text className="text-gray-700 font-semibold mb-2">Address</Text>
             <TextInput
@@ -211,6 +249,63 @@ export default function CreateGeofenceScreen({ navigation }) {
               value={geofence.address}
               onChangeText={(text) => setGeofence({ ...geofence, address: text })}
             />
+          </View>
+
+          {/* Working Hours */}
+          <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-gray-700 font-semibold">Working Hours</Text>
+              <TouchableOpacity
+                className="bg-blue-100 rounded-lg px-3 py-1"
+                onPress={set24Hours}
+              >
+                <Text className="text-blue-600 font-semibold text-xs">24/7</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View className="flex-row justify-between">
+              <View className="flex-1 mr-2">
+                <Text className="text-gray-600 text-sm mb-2">Start Time</Text>
+                <TextInput
+                  className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
+                  placeholder="09:00"
+                  value={geofence.startTime}
+                  onChangeText={(text) => setGeofence({ ...geofence, startTime: text })}
+                />
+              </View>
+              <View className="flex-1 ml-2">
+                <Text className="text-gray-600 text-sm mb-2">End Time</Text>
+                <TextInput
+                  className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
+                  placeholder="18:00"
+                  value={geofence.endTime}
+                  onChangeText={(text) => setGeofence({ ...geofence, endTime: text })}
+                />
+              </View>
+            </View>
+            <Text className="text-gray-500 text-xs mt-2">Format: HH:MM (24-hour)</Text>
+          </View>
+
+          {/* Working Days */}
+          <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+            <Text className="text-gray-700 font-semibold mb-3">Working Days</Text>
+            <View className="flex-row flex-wrap">
+              {Object.keys(workingDays).map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  className={`rounded-lg px-3 py-2 mr-2 mb-2 ${
+                    workingDays[day] ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                  onPress={() => toggleWorkingDay(day)}
+                >
+                  <Text className={`font-semibold text-sm ${
+                    workingDays[day] ? 'text-white' : 'text-gray-600'
+                  }`}>
+                    {day.substring(0, 3)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* Coordinates Display */}

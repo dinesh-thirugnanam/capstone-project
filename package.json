@@ -16,6 +16,7 @@
     "@turf/turf": "^7.2.0",
     "axios": "^1.12.2",
     "expo": "~54.0.18",
+    "expo-dev-client": "~6.0.16",
     "expo-location": "~19.0.7",
     "expo-status-bar": "~3.0.8",
     "expo-task-manager": "~14.0.8",

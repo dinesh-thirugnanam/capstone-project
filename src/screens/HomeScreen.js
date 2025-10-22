@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import * as Location from 'expo-location';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { AuthContext } from '../context/AuthContext';
-import { trackLocation } from '../services/api';
 import { queueLocation, syncQueue, getQueueSize } from '../services/locationQueue';
 import { startBackgroundTracking, stopBackgroundTracking, isBackgroundTrackingActive } from '../services/backgroundLocationService';
 
 export default function HomeScreen({ navigation }) {
   const { user, logout } = useContext(AuthContext);
   const [tracking, setTracking] = useState(false);
-  const [location, setLocation] = useState(null);
-  const [lastEvent, setLastEvent] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [queueSize, setQueueSize] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -161,6 +157,16 @@ export default function HomeScreen({ navigation }) {
           </Text>
         </View>
 
+        {/* Working Hours Notice */}
+        {tracking && (
+          <View className="bg-yellow-50 rounded-xl p-4 mb-4">
+            <Text className="text-gray-700 font-semibold mb-1">⏰ Working Hours</Text>
+            <Text className="text-gray-600 text-sm">
+              Attendance is only tracked during business hours (9 AM - 6 PM, Mon-Fri)
+            </Text>
+          </View>
+        )}
+
         {tracking && (
           <View className="bg-blue-50 rounded-xl p-4 mb-4">
             <Text className="text-blue-600 font-semibold mb-1">📍 Background Tracking Active</Text>
@@ -183,7 +189,7 @@ export default function HomeScreen({ navigation }) {
       {/* Quick Actions */}
       <View className="mx-6 mt-6">
         <TouchableOpacity
-          className="bg-white rounded-xl p-4 shadow-sm flex-row justify-between items-center"
+          className="bg-white rounded-xl p-4 shadow-sm flex-row justify-between items-center mb-3"
           onPress={() => navigation.navigate('Attendance')}
         >
           <View>
@@ -191,6 +197,17 @@ export default function HomeScreen({ navigation }) {
             <Text className="text-gray-500 text-sm mt-1">See your past check-ins</Text>
           </View>
           <Text className="text-blue-600 text-2xl">→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-white rounded-xl p-4 shadow-sm flex-row justify-between items-center"
+          onPress={() => navigation.navigate('Map')}
+        >
+          <View>
+            <Text className="text-gray-800 font-semibold text-lg">View Geofences Map</Text>
+            <Text className="text-gray-500 text-sm mt-1">See all office locations</Text>
+          </View>
+          <Text className="text-blue-600 text-2xl">🗺️</Text>
         </TouchableOpacity>
       </View>
     </View>
