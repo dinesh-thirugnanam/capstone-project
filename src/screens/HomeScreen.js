@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { AuthContext } from '../context/AuthContext';
 import { trackLocation } from '../services/api';
 import { queueLocation, syncQueue, getQueueSize } from '../services/locationQueue';
+import { startBackgroundTracking, stopBackgroundTracking, isBackgroundTrackingActive } from '../services/backgroundLocationService';
 
 export default function HomeScreen({ navigation }) {
   const { user, logout } = useContext(AuthContext);
@@ -14,26 +15,20 @@ export default function HomeScreen({ navigation }) {
   const [isOnline, setIsOnline] = useState(true);
   const [queueSize, setQueueSize] = useState(0);
   const [syncing, setSyncing] = useState(false);
-  
-  const intervalRef = useRef(null);
 
   useEffect(() => {
-    requestLocationPermission();
+    checkTrackingStatus();
     setupNetworkListener();
     updateQueueSize();
     
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      // Cleanup
     };
   }, []);
 
-  const requestLocationPermission = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Location permission is required');
-    }
+  const checkTrackingStatus = async () => {
+    const active = await isBackgroundTrackingActive();
+    setTracking(active);
   };
 
   const setupNetworkListener = () => {
@@ -44,8 +39,6 @@ export default function HomeScreen({ navigation }) {
       if (online) {
         console.log('Back online - attempting to sync queue');
         handleSync();
-      } else {
-        console.log('Offline - will queue location updates');
       }
     });
 
@@ -72,97 +65,34 @@ export default function HomeScreen({ navigation }) {
     await updateQueueSize();
   };
 
-  const trackCurrentLocation = async () => {
-    try {
-      const loc = await Location.getCurrentPositionAsync({ 
-        accuracy: Location.Accuracy.High 
-      });
-      
-      const { latitude, longitude } = loc.coords;
-      setLocation({ latitude, longitude });
-
-      console.log('Fetching location:', latitude, longitude);
-
-      if (isOnline) {
-        // Try to send immediately
-        try {
-          const result = await trackLocation(latitude, longitude, loc.coords.accuracy);
-          console.log('Location tracked:', result);
-
-          if (result.attendanceEvent) {
-            setLastEvent(result.attendanceEvent);
-            Alert.alert(
-              'Attendance Event',
-              `${result.attendanceEvent.event_type} recorded at ${new Date().toLocaleTimeString()}`
-            );
-          }
-        } catch (error) {
-          console.error('Failed to track online, queueing...', error);
-          await queueLocation(latitude, longitude, loc.coords.accuracy);
-          await updateQueueSize();
-        }
-      } else {
-        // Offline - queue immediately
-        console.log('Offline - queueing location');
-        await queueLocation(latitude, longitude, loc.coords.accuracy);
-        await updateQueueSize();
-      }
-
-    } catch (error) {
-      console.error('Location tracking error:', error);
-      Alert.alert('Error', 'Failed to get location');
+  const startTracking = async () => {
+    setTracking(true);
+    
+    const started = await startBackgroundTracking();
+    
+    if (started) {
+      Alert.alert(
+        'Background Tracking Started',
+        'Your location will be tracked automatically, even when the app is closed.\n\nYou\'ll see a notification while tracking is active.'
+      );
+    } else {
+      Alert.alert(
+        'Permission Required',
+        'Background tracking requires "Allow all the time" location permission.\n\nGo to:\nSettings > Apps > Capstone Project > Permissions > Location > Allow all the time'
+      );
+      setTracking(false);
     }
   };
 
-    const startTracking = async () => {
-    // Clear any existing interval first
-    if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-    }
-
-    setTracking(true);
-    
-    // Track immediately
-    await trackCurrentLocation();
-
-    // Then track every 30 seconds
-    intervalRef.current = setInterval(() => {
-        trackCurrentLocation();
-    }, 30000);
-
-    console.log('Tracking started, interval ID:', intervalRef.current);
-    };
-
-    const stopTracking = () => {
-    console.log('Stopping tracking, clearing interval:', intervalRef.current);
-    
+  const stopTracking = async () => {
     setTracking(false);
     
-    if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-    }
+    const stopped = await stopBackgroundTracking();
     
-    console.log('Tracking stopped');
-    };
-
-    useEffect(() => {
-        requestLocationPermission();
-        setupNetworkListener();
-        updateQueueSize();
-        
-        // Cleanup function
-        return () => {
-            console.log('Component unmounting, cleaning up interval');
-            if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-            }
-        };
-        }, []);
-
-
+    if (stopped) {
+      Alert.alert('Tracking Stopped', 'Background location tracking has been disabled');
+    }
+  };
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -182,7 +112,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Network Status Banner */}
+      {/* Network Status */}
       {!isOnline && (
         <View className="bg-yellow-500 px-6 py-3">
           <Text className="text-white font-semibold">⚠️ Offline Mode</Text>
@@ -190,7 +120,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       )}
 
-      {/* Sync Banner */}
+      {/* Queue Status */}
       {queueSize > 0 && (
         <View className="bg-orange-500 px-6 py-3 flex-row justify-between items-center">
           <View>
@@ -220,7 +150,7 @@ export default function HomeScreen({ navigation }) {
         <View className="flex-row items-center mb-4">
           <View className={`w-3 h-3 rounded-full mr-3 ${tracking ? 'bg-green-500' : 'bg-gray-400'}`} />
           <Text className="text-gray-600">
-            {tracking ? 'Active - Checking every 30s' : 'Inactive'}
+            {tracking ? 'Active - Background tracking enabled' : 'Inactive'}
           </Text>
         </View>
 
@@ -231,23 +161,11 @@ export default function HomeScreen({ navigation }) {
           </Text>
         </View>
 
-        {location && (
-          <View className="bg-gray-50 rounded-xl p-4 mb-4">
-            <Text className="text-gray-500 text-sm mb-1">Current Location</Text>
-            <Text className="text-gray-800 font-mono text-xs">
-              {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-            </Text>
-            <Text className="text-gray-400 text-xs mt-1">
-              Last updated: {new Date().toLocaleTimeString()}
-            </Text>
-          </View>
-        )}
-
-        {lastEvent && (
+        {tracking && (
           <View className="bg-blue-50 rounded-xl p-4 mb-4">
-            <Text className="text-blue-600 font-semibold">Last Event</Text>
-            <Text className="text-gray-700 mt-1">
-              {lastEvent.event_type} at {new Date(lastEvent.timestamp).toLocaleTimeString()}
+            <Text className="text-blue-600 font-semibold mb-1">📍 Background Tracking Active</Text>
+            <Text className="text-gray-600 text-sm">
+              Location is being tracked every 30 seconds, even when the app is closed
             </Text>
           </View>
         )}
@@ -257,7 +175,7 @@ export default function HomeScreen({ navigation }) {
           onPress={tracking ? stopTracking : startTracking}
         >
           <Text className="text-white font-bold text-lg">
-            {tracking ? 'Stop Tracking' : 'Start Tracking'}
+            {tracking ? 'Stop Tracking' : 'Start Background Tracking'}
           </Text>
         </TouchableOpacity>
       </View>
