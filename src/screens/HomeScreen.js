@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
+import NetInfo from '@react-native-community/netinfo';
 import { AuthContext } from '../context/AuthContext';
 import { trackLocation } from '../services/api';
+import { queueLocation, syncQueue, getQueueSize } from '../services/locationQueue';
 
 export default function HomeScreen({ navigation }) {
   const { user, logout } = useContext(AuthContext);
   const [tracking, setTracking] = useState(false);
   const [location, setLocation] = useState(null);
   const [lastEvent, setLastEvent] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [queueSize, setQueueSize] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  
   const intervalRef = useRef(null);
 
   useEffect(() => {
     requestLocationPermission();
+    setupNetworkListener();
+    updateQueueSize();
     
-    // Cleanup interval on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -29,6 +36,42 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const setupNetworkListener = () => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const online = state.isConnected && state.isInternetReachable;
+      setIsOnline(online);
+      
+      if (online) {
+        console.log('Back online - attempting to sync queue');
+        handleSync();
+      } else {
+        console.log('Offline - will queue location updates');
+      }
+    });
+
+    return unsubscribe;
+  };
+
+  const updateQueueSize = async () => {
+    const size = await getQueueSize();
+    setQueueSize(size);
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    const result = await syncQueue();
+    setSyncing(false);
+    
+    if (result.synced > 0) {
+      Alert.alert(
+        'Sync Complete',
+        `Successfully synced ${result.synced} location${result.synced > 1 ? 's' : ''}`
+      );
+    }
+    
+    await updateQueueSize();
+  };
+
   const trackCurrentLocation = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({ 
@@ -40,35 +83,44 @@ export default function HomeScreen({ navigation }) {
 
       console.log('Fetching location:', latitude, longitude);
 
-      // Send to backend
-      const result = await trackLocation(latitude, longitude, loc.coords.accuracy);
-      
-      console.log('Location tracked:', result);
+      if (isOnline) {
+        // Try to send immediately
+        try {
+          const result = await trackLocation(latitude, longitude, loc.coords.accuracy);
+          console.log('Location tracked:', result);
 
-      if (result.attendanceEvent) {
-        setLastEvent(result.attendanceEvent);
-        Alert.alert(
-          'Attendance Event',
-          `${result.attendanceEvent.event_type} recorded at ${new Date().toLocaleTimeString()}`
-        );
+          if (result.attendanceEvent) {
+            setLastEvent(result.attendanceEvent);
+            Alert.alert(
+              'Attendance Event',
+              `${result.attendanceEvent.event_type} recorded at ${new Date().toLocaleTimeString()}`
+            );
+          }
+        } catch (error) {
+          console.error('Failed to track online, queueing...', error);
+          await queueLocation(latitude, longitude, loc.coords.accuracy);
+          await updateQueueSize();
+        }
+      } else {
+        // Offline - queue immediately
+        console.log('Offline - queueing location');
+        await queueLocation(latitude, longitude, loc.coords.accuracy);
+        await updateQueueSize();
       }
-
-      // In HomeScreen.js, after tracking result:
-        // if (result.insideGeofences && result.insideGeofences.length > 0) {
-        // Alert.alert(
-        //     'Inside Geofence',
-        //     `You are at: ${result.insideGeofences[0]}`
-        // );
-        // }
-
 
     } catch (error) {
       console.error('Location tracking error:', error);
-      Alert.alert('Error', 'Failed to track location');
+      Alert.alert('Error', 'Failed to get location');
     }
   };
 
-  const startTracking = async () => {
+    const startTracking = async () => {
+    // Clear any existing interval first
+    if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+    }
+
     setTracking(true);
     
     // Track immediately
@@ -76,18 +128,41 @@ export default function HomeScreen({ navigation }) {
 
     // Then track every 30 seconds
     intervalRef.current = setInterval(() => {
-      trackCurrentLocation();
-    }, 1000); // 30 seconds
-  };
+        trackCurrentLocation();
+    }, 30000);
 
-  const stopTracking = () => {
+    console.log('Tracking started, interval ID:', intervalRef.current);
+    };
+
+    const stopTracking = () => {
+    console.log('Stopping tracking, clearing interval:', intervalRef.current);
+    
     setTracking(false);
     
     if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
     }
-  };
+    
+    console.log('Tracking stopped');
+    };
+
+    useEffect(() => {
+        requestLocationPermission();
+        setupNetworkListener();
+        updateQueueSize();
+        
+        // Cleanup function
+        return () => {
+            console.log('Component unmounting, cleaning up interval');
+            if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+            }
+        };
+        }, []);
+
+
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -107,6 +182,37 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
 
+      {/* Network Status Banner */}
+      {!isOnline && (
+        <View className="bg-yellow-500 px-6 py-3">
+          <Text className="text-white font-semibold">⚠️ Offline Mode</Text>
+          <Text className="text-white text-sm">Location updates will be synced when online</Text>
+        </View>
+      )}
+
+      {/* Sync Banner */}
+      {queueSize > 0 && (
+        <View className="bg-orange-500 px-6 py-3 flex-row justify-between items-center">
+          <View>
+            <Text className="text-white font-semibold">
+              📦 {queueSize} location{queueSize > 1 ? 's' : ''} queued
+            </Text>
+            <Text className="text-white text-sm">Waiting to sync</Text>
+          </View>
+          {isOnline && (
+            <TouchableOpacity
+              className="bg-white rounded-lg px-4 py-2"
+              onPress={handleSync}
+              disabled={syncing}
+            >
+              <Text className="text-orange-500 font-semibold">
+                {syncing ? 'Syncing...' : 'Sync Now'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       {/* Status Card */}
       <View className="mx-6 mt-6 bg-white rounded-2xl p-6 shadow-lg">
         <Text className="text-gray-700 font-semibold text-lg mb-4">Tracking Status</Text>
@@ -115,6 +221,13 @@ export default function HomeScreen({ navigation }) {
           <View className={`w-3 h-3 rounded-full mr-3 ${tracking ? 'bg-green-500' : 'bg-gray-400'}`} />
           <Text className="text-gray-600">
             {tracking ? 'Active - Checking every 30s' : 'Inactive'}
+          </Text>
+        </View>
+
+        <View className="flex-row items-center mb-4">
+          <View className={`w-3 h-3 rounded-full mr-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+          <Text className="text-gray-600">
+            {isOnline ? 'Online' : 'Offline'}
           </Text>
         </View>
 
@@ -147,14 +260,6 @@ export default function HomeScreen({ navigation }) {
             {tracking ? 'Stop Tracking' : 'Start Tracking'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-        className="bg-gray-200 rounded-xl py-3 items-center mt-3"
-        onPress={trackCurrentLocation}
-        disabled={!tracking}
-        >
-                <Text className="text-gray-700 font-semibold">Check Location Now</Text>
-        </TouchableOpacity>
-
       </View>
 
       {/* Quick Actions */}
