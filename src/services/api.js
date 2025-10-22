@@ -1,182 +1,53 @@
-import { API_CONFIG } from '../utils/constants';
-import { handleAPIError, tokenManager, withRetry } from "../utils/helpers";
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-class ApiService {
-  constructor() {
-    this.baseURL = API_CONFIG.BASE_URL;
-    this.timeout = API_CONFIG.TIMEOUT;
-    console.log('🌐 API Service initialized with baseURL:', this.baseURL);
-  }
+const API_URL = 'http://192.168.0.103:5000/api'; // Change to your computer's local IP
 
-  async getAuthHeaders() {
-    const token = await tokenManager.getToken();
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-  }
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers = await this.getAuthHeaders();
-    
-    console.log(`🔗 Making API request to: ${url}`);
-    console.log('📋 Request options:', { method: options.method || 'GET', headers });
-    
-    const config = {
-      headers,
-      timeout: this.timeout,
-      ...options,
-    };
-
-    try {
-      const response = await fetch(url, config);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      return data;
-    } catch (error) {
-      console.error(`API Error - ${endpoint}:`, error);
-      throw new Error(handleAPIError(error));
+// Add token to requests automatically
+api.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-  // Authentication endpoints
-  async register(email, password, role = 'employee') {
-    return withRetry(() =>
-      this.request('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, role }),
-      })
-    );
-  }
+// Auth
+export const login = async (email, password) => {
+  const response = await api.post('/auth/login', { email, password });
+  return response.data;
+};
 
-  async login(email, password) {
-    return withRetry(() =>
-      this.request('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      })
-    );
-  }
+// Location tracking
+export const trackLocation = async (latitude, longitude, accuracy) => {
+  const response = await api.post('/locations/track', {
+    latitude,
+    longitude,
+    accuracy,
+  });
+  return response.data;
+};
 
-  async getProfile() {
-    return withRetry(() =>
-      this.request('/auth/me')
-    );
-  }
+// Attendance
+export const getMyAttendance = async () => {
+  const response = await api.get('/attendance/my');
+  return response.data;
+};
 
-  async refreshToken() {
-    return withRetry(() =>
-      this.request('/auth/refresh', {
-        method: 'POST',
-      })
-    );
-  }
+// Geofences
+export const getGeofences = async () => {
+  const response = await api.get('/geofences');
+  return response.data;
+};
 
-  // Geofence (Office) endpoints
-  async getGeofences() {
-    return withRetry(() =>
-      this.request('/geofences')
-    );
-  }
-
-  async createGeofence(geofenceData) {
-    return withRetry(() =>
-      this.request('/geofences', {
-        method: 'POST',
-        body: JSON.stringify(geofenceData),
-      })
-    );
-  }
-
-  async updateGeofence(id, geofenceData) {
-    return withRetry(() =>
-      this.request(`/geofences/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(geofenceData),
-      })
-    );
-  }
-
-  async deleteGeofence(id) {
-    return withRetry(() =>
-      this.request(`/geofences/${id}`, {
-        method: 'DELETE',
-      })
-    );
-  }
-
-  // Attendance endpoints
-  async recordAttendanceEvent(eventData) {
-    return withRetry(() =>
-      this.request('/attendance/event', {
-        method: 'POST',
-        body: JSON.stringify(eventData),
-      })
-    );
-  }
-
-  async getAttendanceHistory(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/attendance/history${queryString ? `?${queryString}` : ''}`;
-    
-    return withRetry(() =>
-      this.request(endpoint)
-    );
-  }
-
-  async getCurrentStatus() {
-    return withRetry(() =>
-      this.request('/attendance/status')
-    );
-  }
-
-  async getDailySummary(date) {
-    return withRetry(() =>
-      this.request(`/attendance/summary/${date}`)
-    );
-  }
-
-  async getWeeklySummary(startDate, endDate) {
-    return withRetry(() =>
-      this.request(`/attendance/summary/range?start=${startDate}&end=${endDate}`)
-    );
-  }
-
-  // Admin endpoints
-  async getAllEmployees() {
-    return withRetry(() =>
-      this.request('/admin/employees')
-    );
-  }
-
-  async getEmployeeAttendance(employeeId, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/admin/employees/${employeeId}/attendance${queryString ? `?${queryString}` : ''}`;
-    
-    return withRetry(() =>
-      this.request(endpoint)
-    );
-  }
-
-  async getAttendanceReports(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/admin/reports${queryString ? `?${queryString}` : ''}`;
-    
-    return withRetry(() =>
-      this.request(endpoint)
-    );
-  }
-
-  // Health check
-  async healthCheck() {
-    return this.request('/health');
-  }
-}
-
-// Export singleton instance
-export default new ApiService();
+export default api;
