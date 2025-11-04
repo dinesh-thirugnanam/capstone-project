@@ -111,9 +111,9 @@ export async function startBackgroundTracking() {
     console.log('[5/5] Starting location updates...');
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.High,
-      timeInterval: 10000, // 10 seconds (for testing, use 30000 for production)
-      distanceInterval: 50,
-      deferredUpdatesInterval: 10000,
+      timeInterval: 1000, // 10 seconds (for testing, use 30000 for production)
+      distanceInterval: 10,
+      deferredUpdatesInterval: 1000,
       foregroundService: {
         notificationTitle: 'Attendance Tracking',
         notificationBody: 'Your location is being tracked for attendance',

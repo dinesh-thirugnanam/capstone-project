@@ -18,13 +18,20 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.capstoneproject",
       "infoPlist": {
-        "UIBackgroundModes": ["location"],
+        "UIBackgroundModes": [
+          "location"
+        ],
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to track attendance automatically, even when the app is in the background.",
         "NSLocationWhenInUseUsageDescription": "We need your location to track attendance.",
         "NSLocationAlwaysUsageDescription": "We need your location in the background for automatic attendance tracking."
       }
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCRQw9f97gEUfjGgimwb0IwByEN7FY-vNE"
+        }
+      },
       "package": "com.anonymous.capstoneproject",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -50,6 +57,11 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "84656514-9e12-4273-b413-de2edd176ea3"
+      }
+    }
   }
 }
