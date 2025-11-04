@@ -26,7 +26,7 @@ export async function getMyLocations(req, res) {
   }
 }
 
-export async function trackLocation(req, res){
+export async function trackLocation(req, res) {
   const user = decodeToken(req);
   if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
@@ -37,7 +37,7 @@ export async function trackLocation(req, res){
   }
 
   try {
-    // 1. Save the location
+    // 1. Save the location (always save, even outside working hours)
     await query(
       `INSERT INTO locations (user_id, location, timestamp, metadata)
        VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), now(), $4)`,
@@ -48,7 +48,9 @@ export async function trackLocation(req, res){
     const geofencesResult = await query(
       `SELECT id, name, radius, 
               ST_X(location::geometry) as longitude, 
-              ST_Y(location::geometry) as latitude
+              ST_Y(location::geometry) as latitude,
+              working_hours,
+              working_days
        FROM geofences 
        WHERE company_id = $1 
          AND is_active = true
@@ -65,44 +67,68 @@ export async function trackLocation(req, res){
     // 3. Get user's last attendance event
     const lastEventResult = await query(
       `SELECT event_type, geofence_id, timestamp 
-      FROM attendance 
-      WHERE user_id = $1 
-      ORDER BY id DESC  -- Changed from timestamp DESC
-      LIMIT 1`,
+       FROM attendance 
+       WHERE user_id = $1 
+       ORDER BY id DESC
+       LIMIT 1`,
       [user.id]
     );
 
-
     const lastEvent = lastEventResult.rows[0];
 
-    console.log('=== DEBUG ===');
-    console.log('Last Event:', lastEvent);
-    console.log('Inside Geofences:', insideGeofences);
-    console.log('Current Geofence ID:', insideGeofences[0]?.id);
+    // 4. Check working hours and days
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute; // Minutes since midnight
+    const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' });
 
-    // 4. Determine if we need to create a new event
+    let isWorkingHours = true;
+    let isWorkingDay = true;
+    let reason = null;
+
+    if (insideGeofences.length > 0) {
+      const geofence = insideGeofences[0];
+      
+      // Check working hours
+      if (geofence.working_hours) {
+        const { start, end } = geofence.working_hours;
+        const [startHour, startMin] = start.split(':').map(Number);
+        const [endHour, endMin] = end.split(':').map(Number);
+        
+        const startTime = startHour * 60 + startMin;
+        const endTime = endHour * 60 + endMin;
+        
+        isWorkingHours = currentTime >= startTime && currentTime <= endTime;
+        
+        if (!isWorkingHours) {
+          reason = `Outside working hours (${start} - ${end})`;
+        }
+      }
+      
+      // Check working days
+      if (geofence.working_days && geofence.working_days.length > 0) {
+        isWorkingDay = geofence.working_days.includes(currentDay);
+        
+        if (!isWorkingDay) {
+          reason = `Not a working day (${currentDay})`;
+        }
+      }
+    }
+
+    // 5. Determine if we need to create a new event
     let newEvent = null;
 
     if (insideGeofences.length > 0) {
       const currentGeofence = insideGeofences[0];
 
-      // Check each condition separately for debugging
-      const noLastEvent = !lastEvent;
-      const lastWasExit = lastEvent?.event_type === 'EXIT';
-      const differentGeofence = lastEvent?.event_type === 'ENTER' && lastEvent?.geofence_id !== currentGeofence.id;
+      const shouldCreateEnter = 
+        !lastEvent || 
+        lastEvent.event_type === 'EXIT' || 
+        (lastEvent.event_type === 'ENTER' && lastEvent.geofence_id !== currentGeofence.id);
 
-      console.log('Conditions:');
-      console.log('  No last event:', noLastEvent);
-      console.log('  Last was EXIT:', lastWasExit);
-      console.log('  Different geofence:', differentGeofence);
-      console.log('  Last geofence_id:', lastEvent?.geofence_id);
-      console.log('  Current geofence_id:', currentGeofence.id);
-
-      const shouldCreateEnter = noLastEvent || lastWasExit || differentGeofence;
-
-      console.log('Should create ENTER:', shouldCreateEnter);
-
-      if (shouldCreateEnter) {
+      // Only create event if within working hours AND working days
+      if (shouldCreateEnter && isWorkingHours && isWorkingDay) {
         const result = await query(
           `INSERT INTO attendance 
            (user_id, geofence_id, event_type, timestamp, location, is_working_hours, is_working_day, metadata)
@@ -113,20 +139,18 @@ export async function trackLocation(req, res){
             currentGeofence.id,
             longitude,
             latitude,
-            true,
-            true,
+            isWorkingHours,
+            isWorkingDay,
             JSON.stringify({ accuracy, detected: 'automatic' })
           ]
         );
 
         newEvent = result.rows[0];
-        console.log('Created ENTER event:', newEvent);
-      } else {
-        console.log('Skipped ENTER - already inside same geofence');
       }
     } else {
       // User is outside all geofences
       if (lastEvent && lastEvent.event_type === 'ENTER') {
+        // Always create EXIT (even outside working hours)
         const result = await query(
           `INSERT INTO attendance 
            (user_id, geofence_id, event_type, timestamp, location, is_working_hours, is_working_day, metadata)
@@ -137,25 +161,28 @@ export async function trackLocation(req, res){
             lastEvent.geofence_id,
             longitude,
             latitude,
-            true,
-            true,
+            isWorkingHours,
+            isWorkingDay,
             JSON.stringify({ accuracy, detected: 'automatic' })
           ]
         );
 
         newEvent = result.rows[0];
-        console.log('Created EXIT event:', newEvent);
       }
     }
 
     res.status(200).json({
       locationSaved: true,
       attendanceEvent: newEvent || null,
-      insideGeofences: insideGeofences.map(g => g.name)
+      insideGeofences: insideGeofences.map(g => g.name),
+      isWorkingHours,
+      isWorkingDay,
+      reason: newEvent ? null : reason,
     });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error tracking location' });
   }
-};
+}
+

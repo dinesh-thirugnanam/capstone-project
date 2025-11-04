@@ -61,3 +61,38 @@ export const getCompanyGeofences = async (req, res) => {
     res.status(500).json({ message: 'Error fetching geofences' });
   }
 };
+
+
+export const deleteGeofence = async (req, res) => {
+  const user = decodeToken(req);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    // Verify geofence belongs to admin's company
+    const checkResult = await query(
+      `SELECT company_id FROM geofences WHERE id = $1`,
+      [id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Geofence not found' });
+    }
+
+    if (checkResult.rows[0].company_id !== user.company_id) {
+      return res.status(403).json({ message: 'Cannot delete geofence from another company' });
+    }
+
+    // Delete the geofence
+    await query(`DELETE FROM geofences WHERE id = $1`, [id]);
+
+    res.status(200).json({ message: 'Geofence deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error deleting geofence' });
+  }
+};
+

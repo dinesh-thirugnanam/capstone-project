@@ -16,9 +16,9 @@ async function seedGeofences() {
       {
         name: 'Main Office - Tech Corp',
         description: 'Headquarters',
-        latitude: 12.9716,
-        longitude: 77.5946,
-        radius: 200,
+        latitude: 13.087094,
+        longitude: 77.563739,
+        radius: 100,
         address: '123 MG Road, Bangalore',
         workingHours: { start: '09:00', end: '18:00' },
         workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
