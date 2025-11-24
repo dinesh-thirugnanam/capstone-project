@@ -46,23 +46,32 @@ export async function trackLocation(req, res) {
 
     // 2. Check if user is inside any company geofence
     const geofencesResult = await query(
-      `SELECT id, name, radius, 
+      `SELECT id, name, radius, geofence_type,
               ST_X(location::geometry) as longitude, 
               ST_Y(location::geometry) as latitude,
+              polygon_geog,
               working_hours,
               working_days
        FROM geofences 
        WHERE company_id = $1 
          AND is_active = true
-         AND ST_DWithin(
-           location::geography,
-           ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
-           radius
+         AND (
+           (geofence_type = 'circle' AND 
+            ST_DWithin(
+              location::geography,
+              ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
+              radius
+            ))
+           OR
+           (geofence_type = 'polygon' AND polygon_geog IS NOT NULL AND 
+            ST_Contains(polygon_geog::geometry, ST_SetSRID(ST_MakePoint($2, $3), 4326)))
          )`,
       [user.company_id, longitude, latitude]
     );
 
     const insideGeofences = geofencesResult.rows;
+
+    console.log('DEBUG: trackLocation - Inside geofences detected:', insideGeofences.map(g => ({ id: g.id, name: g.name, type: g.geofence_type })));
 
     // 3. Get user's last attendance event
     const lastEventResult = await query(
