@@ -1,0 +1,20 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon ./server.js",
+    "seed": "node src/seed/index.js",
+    "seed:clear": "node src/seed/index.js --clear",
+    "seed:companies": "node -e \"require('./src/seed/seedCompanies')().then(() => process.exit(0))\"",
+    "seed:users": "node -e \"require('./src/seed/seedUsers')().then(() => process.exit(0))\""
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
