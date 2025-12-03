@@ -12,4 +12,3 @@ export function decodeToken(req) {
     return null;
   }
 }
-

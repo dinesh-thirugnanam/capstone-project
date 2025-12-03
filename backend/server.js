@@ -2,6 +2,7 @@
 import express, { json } from 'express';
 import dotenv from 'dotenv';
 import authRoutes from './src/routes/authRoutes.js';
+import companyRoutes from './src/routes/companyRoutes.js';
 import geofenceRoutes from './src/routes/geofenceRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
 import locationRoutes from './src/routes/locationRoutes.js';
@@ -12,6 +13,7 @@ dotenv.config({ path: './.env' });
 
 app.use(json());
 app.use('/api/auth', authRoutes);
+app.use('/api/companies', companyRoutes);
 app.use('/api/geofences', geofenceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/locations', locationRoutes);
@@ -21,3 +23,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+

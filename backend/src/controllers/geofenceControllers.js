@@ -1,4 +1,4 @@
-// src/controllers/geofenceController.js
+// src/controllers/geofenceControllers.js
 import { query } from '../db/db.js';
 import { decodeToken } from '../utils/authUtils.js';
 
@@ -93,8 +93,6 @@ export async function createGeofence(req, res) {
   }
 }
 
-
-
 export const getCompanyGeofences = async (req, res) => {
   const user = decodeToken(req);
   if (!user) return res.status(401).json({ message: 'Unauthorized' });
@@ -138,7 +136,6 @@ export const getCompanyGeofences = async (req, res) => {
     res.status(500).json({ message: 'Error fetching geofences' });
   }
 };
-
 
 export const deleteGeofence = async (req, res) => {
   const user = decodeToken(req);

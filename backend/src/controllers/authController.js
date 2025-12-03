@@ -1,14 +1,24 @@
 // src/controllers/authController.js
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import pool from '../db/db.js';
+import { query } from '../db/db.js';
 
 const register = async (req, res) => {
   const { email, password, role, company_id } = req.body;
 
+  if (!email || !password || !company_id) {
+    return res.status(400).json({ message: 'Email, password, and company_id are required' });
+  }
+
   try {
+    // Verify company exists
+    const companyCheck = await query('SELECT id FROM companies WHERE id = $1', [company_id]);
+    if (companyCheck.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid company' });
+    }
+
     // Check if user exists
-    const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const existing = await query('SELECT * FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
@@ -17,7 +27,7 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Insert user
-    const newUser = await pool.query(
+    const newUser = await query(
       `INSERT INTO users (email, password, role, company_id)
        VALUES ($1, $2, $3, $4)
        RETURNING id, email, role, company_id`,
@@ -37,7 +47,7 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
