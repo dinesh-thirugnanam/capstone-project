@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "capstone-project",
+    "slug": "capstone-project",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.capstoneproject",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to track attendance automatically, even when the app is in the background.",
+        "NSLocationWhenInUseUsageDescription": "We need your location to track attendance.",
+        "NSLocationAlwaysUsageDescription": "We need your location in the background for automatic attendance tracking."
+      }
+    },
+    "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCRQw9f97gEUfjGgimwb0IwByEN7FY-vNE"
+        }
+      },
+      "package": "com.anonymous.capstoneproject",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location for attendance tracking.",
+          "locationAlwaysPermission": "Allow $(PRODUCT_NAME) to use your location for attendance tracking even when the app is not in use.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location for attendance tracking.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "84656514-9e12-4273-b413-de2edd176ea3"
+      }
+    }
+  }
+}
